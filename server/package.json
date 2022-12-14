@@ -1,0 +1,29 @@
+{
+	"name": "school-management-system",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"start": "node ./bin/www",
+		"cloud-debug": "node --inspect=9229 ./bin/www",
+		"debug": "run-script-os",
+		"local": "set MYSQL_URL=mysql://root:root@localhost:3306/schoolmanagementDB&PORT=8080&node ./bin/www",
+		"debug:nix": "MYSQL_URL=mysql://root:root@localhost:3306/schoolmanagementDB&PORT=8080 node --inspect ./bin/www",
+		"debug:win32": "set MYSQL_URL=mysql://root:root@localhost:3306/schoolmanagementDB&PORT=8080&node --inspect ./bin/www",
+		"debug_prod": "set MYSQL_URL=mysql://root:root@localhost:3306/schoolmanagementDB&PORT=8080&set NODE_ENV=production&node --inspect ./bin/www"
+	},
+	"dependencies": {
+		"body-parser": "*",
+		"express": "*",
+		"jsonwebtoken": "^8.5.1",
+		"md5": "^2.3.0",
+		"moment": "^2.29.4",
+		"mysql": "^2.18.1",
+		"mysql-parse": "^2.0.8",
+		"promise-mysql": "^5.2.0",
+		"run-script-os": "^1.1.6",
+		"throw.js": "*",
+		"winston": "*",
+		"winston-gke": "*"
+	},
+	"devDependencies": {}
+}

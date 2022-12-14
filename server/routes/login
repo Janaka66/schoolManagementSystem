@@ -1,0 +1,36 @@
+'use strict'
+const express = require('express'); 
+const { AppError } = require('../bin/config');
+const router = express.Router();
+var bodyparser = require('body-parser');
+var urlencodedparser = bodyparser.urlencoded({extended:false})
+var md5 = require('md5');
+const con = require('../bin/config');
+
+const jwt = require("jsonwebtoken");
+const jwtKey = "my_secret_key"
+const jwtExpirySeconds = 300
+
+
+router.post('/login',urlencodedparser, async(req, res,next) => {
+
+    // Get credentials from JSON body
+        
+    let username = req.body.userName;
+    let password = req.body.password;
+
+    try {
+        
+        let token = jwt.sign({username,password}, jwtKey, {
+            expiresIn: jwtExpirySeconds,
+        }) 
+
+        return res.json(token);
+
+    } catch (error) {
+        
+    }          
+
+})
+
+module.exports = router;

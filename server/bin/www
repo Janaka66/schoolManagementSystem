@@ -1,0 +1,95 @@
+#!/usr/bin/env node
+
+/*
+  school-management-system Application for Kubernates 
+  Bradford Technologies, Inc.          
+  All Rights Reserved                  
+  Source Code Copyrighted © 1998-2018 by Bradford Technologies, Inc.
+
+  Author: Charlie
+ */
+
+'use strict';
+
+
+const app = require('../app');
+const http = require('http');
+const config = require('./config')
+const log = config.log;
+
+log.debug('Start debugging....'); 
+
+
+/* ---Handle Termination ---*/
+(callback => {
+
+    
+    process.on('cleanup', callback);
+  
+    // do app specific cleaning before exiting
+    process.on('exit', function () {
+      process.emit('cleanup');
+    });
+  
+    // catch ctrl+c event and exit normally
+    process.on('SIGINT', function () {
+      log.debug('Ctrl-C...');
+      process.exit(130);
+    });
+  
+    //catch uncaught exceptions, trace, then exit normally
+    process.on('uncaughtException', function(e) {
+      log.error('Uncaught Exception...');
+      log.error(e.stack);
+      process.exit(99);
+    });
+  })(function(){
+      log.info('Exiting...');
+  })
+
+
+ 
+
+/* ---Get the port from ENV--- */
+var port = process.env.PORT || '8080';
+app.set('port', port);
+
+
+/* ---Create the server---*/
+var server = http.createServer(app);
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+
+/* ---Server events--- */
+function onError(error) {
+
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+
+    case 'EACCES':
+      global.log.error('The port requires elevated privileges');
+      process.exit(1);
+      break;
+
+    case 'EADDRINUSE':
+      global.log.error('The port is already in use');
+      process.exit(1);
+      break;
+      
+    default:
+      throw error;
+  }
+}
+
+function onListening() {
+    var addr = server.address();
+    log.info(`Listening on ${addr.port}`);
+  }
+

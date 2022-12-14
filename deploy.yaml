@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: school-management-system
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: school-management-system
+ 
+---
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: school-management-system
+spec:
+  revisionHistoryLimit: 2
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: school-management-system
+    spec:
+      containers:
+      - image: gcr.io/__PROJECT_ID/school-management-system:__IMAGE_TAG
+        resources:
+          limits:
+            cpu: "__CPU_LIMIT"
+            memory: "__MEMORY_LIMIT"
+          requests:
+            cpu: "__CPU_REQUEST"
+            memory: "__MEMORY_REQUEST"
+        name: school-management-system
+        ports:
+        - containerPort: 8080
+        env:
+        - name: NODE_ENV
+          value: develop
+        - name: PROJECT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: __NAMESPACE_CONFIG
+              key: PROJECT_ID
+        - name: BRANCH_ID
+          valueFrom:
+            configMapKeyRef:
+              name: __NAMESPACE_CONFIG
+              key: BRANCH_ID
+        readinessProbe:
+          httpGet:
+            # Path to probe; should be cheap, but representative of typical behavior
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            # Path to probe; should be cheap, but representative of typical behavior
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          timeoutSeconds: 1

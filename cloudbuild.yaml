@@ -1,0 +1,89 @@
+substitutions:
+  _NAMESPACE_CONFIG_PROD: "namespace-config-special"
+  _NAMESPACE_CONFIG_DEV: "namespace-config"
+  _BRANCH_NAME_PROD: "default"
+  _CPU_LIMIT_PROD: "0.1"
+  _CPU_LIMIT_DEV: "0.1"
+  _CPU_REQUEST_PROD: "0.02"
+  _CPU_REQUEST_DEV: "0.02"
+  _MEMORY_LIMIT_PROD: "100Mi"
+  _MEMORY_LIMIT_DEV: "100Mi"
+  _MEMORY_REQUEST_PROD: "50Mi"
+  _MEMORY_REQUEST_DEV: "50Mi"
+  _CLOUD_DEBUG: "false"
+  
+steps:
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+  
+    # set up for cloud debug
+    if [ "$_CLOUD_DEBUG" = "true" ]
+    then
+      sed -i "s/"start"/"run\"",\""cloud-debug"/" Dockerfile
+    fi
+  
+    # Set the ProjectId and ImageTag in deploy.yaml
+    sed -i "s/__PROJECT_ID/$PROJECT_ID/" deploy.yaml
+    sed -i "s/__IMAGE_TAG/$BRANCH_NAME-$REVISION_ID/" deploy.yaml
+
+    #Set the Sql Instance name and sql url secret name based on the project
+    if [ "$PROJECT_ID" = "ocf-prod" ]
+    then
+      sed -i "s/__NAMESPACE_CONFIG/$_NAMESPACE_CONFIG_PROD/" deploy.yaml
+      sed -i "s/__CPU_LIMIT/$_CPU_LIMIT_PROD/" deploy.yaml
+      sed -i "s/__CPU_REQUEST/$_CPU_REQUEST_PROD/" deploy.yaml
+      sed -i "s/__MEMORY_LIMIT/$_MEMORY_LIMIT_PROD/" deploy.yaml
+      sed -i "s/__MEMORY_REQUEST/$_MEMORY_REQUEST_PROD/" deploy.yaml
+    else
+
+      if [ "$PROJECT_ID" = "bt-develop-1" ]
+      then
+        sed -i "s/__NAMESPACE_CONFIG/$_NAMESPACE_CONFIG_DEV/" deploy.yaml
+        sed -i "s/__CPU_LIMIT/$_CPU_LIMIT_DEV/" deploy.yaml
+        sed -i "s/__CPU_REQUEST/$_CPU_REQUEST_DEV/" deploy.yaml
+        sed -i "s/__MEMORY_LIMIT/$_MEMORY_LIMIT_DEV/" deploy.yaml
+        sed -i "s/__MEMORY_REQUEST/$_MEMORY_REQUEST_DEV/" deploy.yaml
+      fi
+
+    fi 
+
+    cat deploy.yaml
+
+
+
+## Build the Dockerfile
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/school-management-system:$BRANCH_NAME-$REVISION_ID', '.']
+
+# Push image to repository
+- name: 'gcr.io/cloud-builders/docker'
+  args: ["push", "gcr.io/$PROJECT_ID/school-management-system:$BRANCH_NAME-$REVISION_ID"]
+
+# Update Deployment with new image
+- name: 'gcr.io/cloud-builders/kubectl'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+
+    #Set the cluster and zone based on the project  
+    export CLOUDSDK_COMPUTE_ZONE=us-central1-f
+
+    if [ "$BRANCH_NAME" = "staging" ] || [ "$BRANCH_NAME" = "develop" ]
+    then
+      export CLOUDSDK_CONTAINER_CLUSTER=cluster-1
+    else
+      export CLOUDSDK_CONTAINER_CLUSTER=ocf-master
+    fi
+
+
+    #Set namespace based on the branch
+    if [ "$BRANCH_NAME" = "master" ]
+    then
+      /builder/kubectl.bash apply -f deploy.yaml --namespace=$_BRANCH_NAME_PROD
+    else
+      /builder/kubectl.bash apply -f deploy.yaml --namespace=$BRANCH_NAME
+    fi    
